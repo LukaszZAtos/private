@@ -15,11 +15,11 @@ Fill path and host of database, it uses web endpoint, to insert csv files into M
 ### Prerequisites
 
 GOLANG
-go get github.com/go-resty/resty
+`go get github.com/go-resty/resty`
 
 ### Installing
 
-go build -o csv_uploader.exe
+`go build -o csv_uploader.exe`
 
 ## Running the tests
 
@@ -47,8 +47,5 @@ Creative Commons License - see the [LICENSE.md](LICENSE.md) file for
 details
 
 
-[csv uploader]
-***csvuploader.go***
-use this to make .exe 
-***go build -o csv_uploader.exe***
+
   
