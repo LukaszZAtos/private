@@ -25,37 +25,28 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Read command-line arguments
 	ansibleTowerURL := os.Args[1]
 	ansibleTokenFile := os.Args[2]
 	ansibleJobTemplate := os.Args[3]
 
-	// Read Ansible Tower token from file
 	ansibleToken, err := readTokenFromFile(ansibleTokenFile)
 	if err != nil {
 		fmt.Printf("Failed to read Ansible token: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Check Ansible Tower health
 	if err := checkAnsibleHealth(ansibleTowerURL, ansibleToken); err != nil {
 		fmt.Printf("Failed to check Ansible Tower health: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Get the job details
 	job, err := getAnsibleJob(ansibleTowerURL, ansibleToken, ansibleJobTemplate)
 	if err != nil {
 		fmt.Printf("Failed to get job details: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Print the job status
-	fmt.Printf("Job ID: %d\n", job.ID)
-	fmt.Printf("Status: %s\n", job.Status)
-	fmt.Printf("Started: %s\n", job.Started)
-	fmt.Printf("Finished: %s\n", job.Finished)
-	fmt.Printf("Failed: %t\n", job.Failed)
+	fmt.Printf("Job ID: %d\nStatus: %s\nStarted: %s\nFinished: %s\nFailed: %t\n", job.ID, job.Status, job.Started, job.Finished, job.Failed)
 	if job.Failed {
 		fmt.Printf("Failure Message: %s\n", job.FailedMsg)
 		os.Exit(1)
@@ -74,12 +65,10 @@ func readTokenFromFile(filename string) (string, error) {
 
 func checkAnsibleHealth(ansibleTowerURL, ansibleToken string) error {
 	client := &http.Client{}
-
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/ping/", ansibleTowerURL), nil)
 	if err != nil {
 		return err
 	}
-
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", ansibleToken))
 	resp, err := client.Do(req)
 	if err != nil {
@@ -96,12 +85,10 @@ func checkAnsibleHealth(ansibleTowerURL, ansibleToken string) error {
 
 func getAnsibleJob(ansibleTowerURL, ansibleToken, ansibleJobTemplate string) (*AnsibleJob, error) {
 	client := &http.Client{}
-
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/job_templates/%s/last_job/", ansibleTowerURL, ansibleJobTemplate), nil)
 	if err != nil {
 		return nil, err
 	}
-
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", ansibleToken))
 	resp, err := client.Do(req)
 	if err != nil {
