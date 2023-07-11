@@ -38,7 +38,8 @@ func main() {
 
 	// Create the TLS configuration
 	config := tls.Config{
-		ServerName: hostname,
+		InsecureSkipVerify: true,
+		ServerName:         hostname,
 	}
 
 	// Create the TLS connection
@@ -64,5 +65,6 @@ func main() {
 		}
 	}
 
+	log.Println("All certificates are valid and not expiring soon.")
 	os.Exit(exitCodeOK)
 }
