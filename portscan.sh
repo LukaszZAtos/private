@@ -1,46 +1,47 @@
 #!/bin/bash
 
-# Function to check the connection status for a given IP and port
-check_port() {
-    local ip=$1
-    local port=$2
-    local status
+TIMEOUT=2
 
-    # Try to connect and wait for up to 3 seconds for a response
-    nc -z -w3 $ip $port >/dev/null 2>&1
-
-    # Check the exit code of the previous command
-    if [ $? -eq 0 ]; then
-        status="Success"
-    else
-        status=$(nc -z -w3 $ip $port 2>&1)
-        if [[ "$status" =~ "succeeded!" ]]; then
-            status="Refused"
-        else
-            status="Timed out"
-        fi
-    fi
-
-    echo "$status"
+# Function to check SSH connection
+check_ssh() {
+  ip=$1
+  if timeout $TIMEOUT bash -c "</dev/tcp/$ip/22" >/dev/null 2>&1; then
+    echo -n "$ip - SSH Successful | "
+  elif [ $? -eq 124 ]; then
+    echo -n "$ip - SSH Timed Out | "
+  else
+    echo -n "$ip - SSH Refused | "
+  fi
 }
 
-# Check if the filename is provided as an argument
-if [ $# -eq 0 ]; then
-    echo "Usage: $0 <filename>"
-    exit 1
-fi
+# Function to check WinRM connection
+check_winrm() {
+  ip=$1
+  if timeout $TIMEOUT curl --insecure --silent --max-time $TIMEOUT "http://$ip:5985/wsman" >/dev/null 2>&1; then
+    echo -n "WinRM Successful | "
+  elif [ $? -eq 124 ]; then
+    echo -n "WinRM Timed Out | "
+  else
+    echo -n "WinRM Refused | "
+  fi
+}
 
-# Check if the file exists
-if [ ! -f "$1" ]; then
-    echo "Error: File $1 not found."
-    exit 1
-fi
+# Function to check WinRM over HTTPS connection
+check_winrm_https() {
+  ip=$1
+  if timeout $TIMEOUT curl --insecure --silent --max-time $TIMEOUT "https://$ip:5986/wsman" >/dev/null 2>&1; then
+    echo "WinRM over HTTPS Successful"
+  elif [ $? -eq 124 ]; then
+    echo "WinRM over HTTPS Timed Out"
+  else
+    echo "WinRM over HTTPS Refused"
+  fi
+}
 
-# Loop through the file, extracting IPs and checking the ports
-while read -r ip; do
-    ssh_status=$(check_port "$ip" 22)       # SSH
-    winrm_status=$(check_port "$ip" 5985)   # WinRM
-    winrm_https_status=$(check_port "$ip" 5986)  # WinRM over HTTPS
+# Read IP addresses from a file (one per line)
+while IFS= read -r ip; do
+  check_ssh "$ip"
+  check_winrm "$ip"
+  check_winrm_https "$ip"
+done < ip_list.txt
 
-    echo "$ip: SSH($ssh_status) WinRM($winrm_status) WinRM over HTTPS($winrm_https_status)"
-done < "$1"
