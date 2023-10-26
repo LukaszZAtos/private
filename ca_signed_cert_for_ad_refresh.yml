@@ -1,0 +1,63 @@
+---
+- name: Refresh AD Certificates
+  hosts: ad_server
+  tasks:
+    - name: Request a new certificate from AD
+      win_shell: |
+        # PowerShell commands to request a new certificate
+        $reqPath = "C:\Path\To\certificate.req"
+        # Request the certificate and save the request to a file
+        # Add necessary parameters and attributes as needed
+        Get-Certificate -Template "YourTemplateName" -SubjectName "CN=YourCN" -Url "ldap://YourCA" -CertStoreLocation "Cert:\LocalMachine\My" -FilePath $reqPath
+
+    - name: Fetch the certificate request file to Ansible host
+      fetch:
+        src: "C:\Path\To\certificate.req"
+        dest: "/tmp/certificate.req"
+        flat: yes
+
+- name: Sign the Certificate with CA
+  hosts: ca_server
+  tasks:
+    - name: Copy the certificate request file to CA server
+      copy:
+        src: "/tmp/certificate.req"
+        dest: "C:\Path\To\certificate.req"
+
+    - name: Sign the certificate request with the CA
+      win_shell: |
+        # PowerShell commands to sign the certificate
+        certreq -submit -config "YourCA\YourCAName" -attrib "CertificateTemplate:YourTemplateName" C:\Path\To\certificate.req C:\Path\To\certificate.crt
+
+    - name: Fetch the signed certificate to Ansible host
+      fetch:
+        src: "C:\Path\To\certificate.crt"
+        dest: "/tmp/certificate.crt"
+        flat: yes
+
+- name: Import the Signed Certificate back to AD
+  hosts: ad_server
+  tasks:
+    - name: Copy the signed certificate to AD server
+      copy:
+        src: "/tmp/certificate.crt"
+        dest: "C:\Path\To\certificate.crt"
+
+    - name: Import the signed certificate
+      win_shell: |
+        # PowerShell commands to import the certificate
+        Import-Certificate -FilePath C:\Path\To\certificate.crt -CertStoreLocation Cert:\LocalMachine\My
+
+    - name: Verify the certificate installation
+      win_shell: |
+        # PowerShell commands to verify the certificate
+        Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object {$_.Subject -like "CN=YourCN"}
+
+  vars_prompt:
+    - name: "ad_server_password"
+      prompt: "Enter the AD server password"
+      private: yes
+
+    - name: "ca_server_password"
+      prompt: "Enter the CA server password"
+      private: yes
