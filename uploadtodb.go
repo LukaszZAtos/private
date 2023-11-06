@@ -8,15 +8,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
 	// Database connection settings
-	dbUser := "your_username"
-	dbPassword := "your_password"
-	dbName := "your_database_name"
+	dbUser := "root" // replace with actual database user
+	dbPassword := "Ganda666" // replace with actual database password
+	dbName := "kajaki" // replace with actual database name
 
 	// Open database connection
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@/%s", dbUser, dbPassword, dbName))
@@ -56,10 +57,10 @@ func main() {
 				continue
 			}
 
-			// Insert the record into the database
-			err = insertRecord(db, record)
+			// Insert or update the record into the database
+			err = insertOrUpdateRecord(db, record)
 			if err != nil {
-				log.Println("Error inserting record into the database:", err)
+				log.Println("Error inserting or updating record into the database:", err)
 				continue
 			}
 		}
@@ -74,16 +75,25 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func insertRecord(db *sql.DB, record []string) error {
-	// Prepare the SQL statement
-	stmt, err := db.Prepare("INSERT INTO your_table_name (col1, col2, col3) VALUES (?, ?, ?)") // Modify the table and column names accordingly
+func insertOrUpdateRecord(db *sql.DB, record []string) error {
+	// Assuming record[1] is numerwyscigu, record[2] is tor, record[3] is surname, record[4] is name, and record[8] is czas
+	// Combine surname and name for the imie column
+	imie := strings.TrimSpace(record[3]) + " " + strings.TrimSpace(record[4])
+
+	// Prepare the SQL statement for upsert
+	stmt, err := db.Prepare(`
+		INSERT INTO wyscigi (numerwyscigu, tor, imie, czas)
+		VALUES (?, ?, ?, ?)
+		ON DUPLICATE KEY UPDATE
+		tor=VALUES(tor), imie=VALUES(imie), czas=VALUES(czas)
+	`) // Modify the table and column names accordingly
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
 	// Execute the SQL statement with the record values
-	_, err = stmt.Exec(record[0], record[1], record[2]) // Modify the column indices according to your CSV structure
+	_, err = stmt.Exec(record[1], record[2], imie, record[8])
 	if err != nil {
 		return err
 	}
