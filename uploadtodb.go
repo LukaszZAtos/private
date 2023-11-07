@@ -15,9 +15,9 @@ import (
 
 func main() {
 	// Database connection settings
-	dbUser := "root" // replace with actual database user
-	dbPassword := "Ganda666" // replace with actual database password
-	dbName := "kajaki" // replace with actual database name
+	dbUser := "" // replace with actual database user
+	dbPassword := "" // replace with actual database password
+	dbName := "" // replace with actual database name
 
 	// Open database connection
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@/%s", dbUser, dbPassword, dbName))
