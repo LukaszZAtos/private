@@ -1,22 +1,34 @@
 from scapy.all import sniff, DNS, DNSQR
 import subprocess
 import os
+import time
 
 # Configuration
-VPN_INTERFACE = 'tun0'  # Replace with your VPN interface
-DOMAINS_TO_BLOCK = ['googlevideo.com', 'anotherdomain.com']  # List of domains to block
-BLOCKLIST_PATH = '/etc/dnsmasq.blocklist'  # Path to dnsmasq blocklist
+VPN_INTERFACE = 'tun0'
+DOMAINS_TO_BLOCK = ['googlevideo.com', 'anotherdomain.com']
+BLOCKLIST_PATH = '/etc/dnsmasq.blocklist'
+RESTART_INTERVAL = 60  # Time in seconds between dnsmasq restarts
+
+last_restart_time = time.time()
 
 def is_subdomain(domains, subdomain):
     return any(subdomain.endswith('.' + domain) or subdomain == domain for domain in domains)
 
 def update_dnsmasq_blocklist(subdomain):
+    global last_restart_time
+    updated = False
     with open(BLOCKLIST_PATH, 'a+') as file:
         file.seek(0)
         if f"address=/{subdomain}/" not in file.read():
             file.write(f"address=/{subdomain}/\n")
-            subprocess.run(["sudo", "systemctl", "restart", "dnsmasq"], check=True)
+            updated = True
             print(f"Blocked {subdomain}")
+
+    current_time = time.time()
+    if updated and (current_time - last_restart_time > RESTART_INTERVAL):
+        subprocess.run(["sudo", "systemctl", "restart", "dnsmasq"], check=True)
+        last_restart_time = current_time
+        print("dnsmasq restarted successfully.")
 
 def dns_query(packet):
     if packet.haslayer(DNS) and packet.getlayer(DNS).qr == 0:
